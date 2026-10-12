@@ -13,11 +13,15 @@ import java.time.Instant;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-@Table(name = "productos")
+@Table(name = "product")
 public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false, length = 100, updatable = false, unique = true)
+    @EqualsAndHashCode.Include
+    private String sku;
 
     @Column(nullable = false, length = 100)
     private String name;
@@ -31,10 +35,6 @@ public class Product {
 
     @LastModifiedDate
     private Instant updatedAt;
-
-    @Column(nullable = false, length = 100, updatable = false, unique = true)
-    @EqualsAndHashCode.Include
-    private String sku;
 
     @Version
     private Long version;
