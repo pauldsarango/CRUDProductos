@@ -19,6 +19,10 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false, length = 100, updatable = false, unique = true)
+    @EqualsAndHashCode.Include
+    private String sku;
+
     @Column(nullable = false, length = 100)
     private String name;
 
@@ -31,10 +35,6 @@ public class Product {
 
     @LastModifiedDate
     private Instant updatedAt;
-
-    @Column(nullable = false, length = 100, updatable = false, unique = true)
-    @EqualsAndHashCode.Include
-    private String sku;
 
     @Version
     private Long version;
