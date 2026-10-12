@@ -13,7 +13,7 @@ import java.time.Instant;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-@Table(name = "productos")
+@Table(name = "Productos")
 public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
