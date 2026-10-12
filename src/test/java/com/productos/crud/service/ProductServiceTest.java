@@ -1,6 +1,7 @@
 package com.productos.crud.service;
 
 import com.productos.crud.dto.CreateProductRequest;
+import com.productos.crud.dto.ProductResponse;
 import com.productos.crud.entity.Product;
 import com.productos.crud.exception.DuplicateResourceException;
 import com.productos.crud.repository.ProductRepository;
@@ -45,19 +46,25 @@ class ProductServiceTest {
         when(repository.save(any(Product.class))).thenReturn(product);
 
         // Act
-        service.createProduct(request);     // ejecutamos el caso de uso
+        ProductResponse response = service.createProduct(request);     // ejecutamos el caso de uso
 
         // Asserts
         ArgumentCaptor<Product> captorProduct = ArgumentCaptor.forClass(Product.class);         // capturamos lo que pasó el save
         verify(repository, times(1)).save(captorProduct.capture());
 
         Product capturedProduct = captorProduct.getValue();
-
+        //
         assertThat(capturedProduct.getId()).isNull();
         assertThat(capturedProduct.getSku()).isEqualTo("ZAP001NEG40");
         assertThat(capturedProduct.getName()).isEqualTo("Zapatillas Runner Negras");
         assertThat(capturedProduct.getPrice()).isEqualTo(new BigDecimal("49.99"));
         assertThat(capturedProduct.getUpdatedAt()).isNull();
+
+        assertThat(response.id()).isNull();
+        assertThat(response.sku()).isEqualTo("ZAP001NEG40");
+        assertThat(response.name()).isEqualTo("Zapatillas Runner Negras");
+        assertThat(response.price()).isEqualTo(new  BigDecimal("49.99"));
+        assertThat(response.updatedAt()).isNull();
 
         verify(repository,times(1)).existsBySku("ZAP001NEG40");
         verifyNoMoreInteractions(repository);
