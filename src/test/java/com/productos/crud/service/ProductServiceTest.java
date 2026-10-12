@@ -12,6 +12,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 
@@ -41,6 +42,8 @@ class ProductServiceTest {
                 "Zapatillas Runner Negras",
                 new BigDecimal("49.99")
         );
+        // Agregamos un parametro a un campo privado, no persiste en la BD
+        ReflectionTestUtils.setField(product, "id", 1L);
 
         when(repository.existsBySku("ZAP001NEG40")).thenReturn(false);
         when(repository.save(any(Product.class))).thenReturn(product);
@@ -48,25 +51,25 @@ class ProductServiceTest {
         // Act
         ProductResponse response = service.createProduct(request);     // ejecutamos el caso de uso
 
-        // Asserts
-        ArgumentCaptor<Product> captorProduct = ArgumentCaptor.forClass(Product.class);         // capturamos lo que pasó el save
+        // Assert  entrada al repositorio
+        ArgumentCaptor<Product> captorProduct = ArgumentCaptor.forClass(Product.class); // capturamos lo que pasó el save
         verify(repository, times(1)).save(captorProduct.capture());
-
         Product capturedProduct = captorProduct.getValue();
-        //
         assertThat(capturedProduct.getId()).isNull();
         assertThat(capturedProduct.getSku()).isEqualTo("ZAP001NEG40");
         assertThat(capturedProduct.getName()).isEqualTo("Zapatillas Runner Negras");
         assertThat(capturedProduct.getPrice()).isEqualTo(new BigDecimal("49.99"));
         assertThat(capturedProduct.getUpdatedAt()).isNull();
 
-        assertThat(response.id()).isNull();
+        // Assert salida del Service: Product -> ProductResponse
+        assertThat(response.id()).isEqualTo(1L);
         assertThat(response.sku()).isEqualTo("ZAP001NEG40");
         assertThat(response.name()).isEqualTo("Zapatillas Runner Negras");
-        assertThat(response.price()).isEqualTo(new  BigDecimal("49.99"));
+        assertThat(response.price()).isEqualTo(new BigDecimal("49.99"));
         assertThat(response.updatedAt()).isNull();
 
-        verify(repository,times(1)).existsBySku("ZAP001NEG40");
+
+        verify(repository).existsBySku("ZAP001NEG40");
         verifyNoMoreInteractions(repository);
     }
 
