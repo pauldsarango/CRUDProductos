@@ -15,14 +15,6 @@ public record ErrorResponse(
         @JsonInclude(JsonInclude.Include.NON_EMPTY) // evita mostrar {} cuando no ocupe el map
         Map<String,List<String>> validationErrors
 ) {
-    public ErrorResponse(
-            int status,
-            String error,
-            String message,
-            Instant timestamp
 
-    ) {
-        this(status, error, message, timestamp, Map.of());
-    }
 
 }
