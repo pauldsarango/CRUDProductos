@@ -288,7 +288,7 @@ class ProductControllerTest {
         );
 
         when(service.createProduct(any(CreateProductRequest.class)))
-                .thenThrow(new DuplicateResourceException("This SKU is already registered: " + request.sku()));
+                .thenThrow(new DuplicateResourceException("This SKU is already registered " + request.sku()));
 
         // Act
         mockMvc.perform(post("/api/products")
@@ -298,7 +298,7 @@ class ProductControllerTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409))
                 .andExpect(jsonPath("$.error").value("Conflict"))
-                .andExpect(jsonPath("$.message").value("This SKU is already registered: " + request.sku()))
+                .andExpect(jsonPath("$.message").value("This SKU is already registered " + request.sku()))
                 .andExpect(jsonPath("$.timestamp", notNullValue()));
 
         verify(service, times(1)).createProduct(any(CreateProductRequest.class));
