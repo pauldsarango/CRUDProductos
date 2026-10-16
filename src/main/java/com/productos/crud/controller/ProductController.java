@@ -4,11 +4,9 @@ import com.productos.crud.dto.CreateProductRequest;
 import com.productos.crud.dto.ProductResponse;
 import com.productos.crud.service.ProductService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.*;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
@@ -21,6 +19,26 @@ public class ProductController {
 
     public ProductController(ProductService service) {
         this.service = service;
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ProductResponse> getProductById(
+            @Positive(message = "must be greater than zero")
+            @NotNull(message = "must not be null")
+            @PathVariable Long id
+    ){
+        ProductResponse product = service.getProductById(id);
+        return ResponseEntity.ok(product);
+    }
+
+    @GetMapping("/sku/{sku}")
+    public ResponseEntity<ProductResponse> getProductBySku(
+            @NotBlank(message = "SKU cannot be blank")
+            @Size(min = 4, max = 50, message = "SKU must be between {min} and {max} characters")
+            @PathVariable String sku
+    ){
+        ProductResponse product = service.getProductBySku(sku);
+        return ResponseEntity.ok(product);
     }
 
     @PostMapping
