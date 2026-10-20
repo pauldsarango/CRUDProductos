@@ -1,7 +1,9 @@
 package com.productos.crud.service;
 
 import com.productos.crud.dto.CreateProductRequest;
+import com.productos.crud.dto.PaginationParams;
 import com.productos.crud.dto.ProductResponse;
+import com.productos.crud.dto.ProductSortField;
 import com.productos.crud.entity.Product;
 import com.productos.crud.exception.DuplicateResourceException;
 import com.productos.crud.exception.ResourceNotFoundException;
@@ -13,9 +15,14 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import static org.springframework.data.domain.Sort.Direction.ASC;
+
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,6 +38,48 @@ class ProductServiceTest {
     @InjectMocks
     private ProductService service;
 
+    @Test
+    @DisplayName("Debe obtener todos los productos exitosamente")
+    void shouldGetAllProductsSuccessfully(){
+        // Arrange
+        Product product1 = new Product("ZAP001NEG40",
+                "Zapatillas Runner Negras",
+                new BigDecimal("49.99")
+        );
+        Product product2 = new Product("CAM003BLA10",
+                "Camisa Blanca",
+                new BigDecimal("25.99")
+        );
+        // Agregamos un parametro a un campo privado, no persiste en la BD
+        ReflectionTestUtils.setField(product1, "id", 10L);
+        ReflectionTestUtils.setField(product2, "id", 20L);
+        // Creamos la lista de productos
+        List<Product> products = List.of(product1, product2);
+        // indicamos los detalles de la paginación
+        PaginationParams params = new PaginationParams(0, 10, ProductSortField.ID, ASC);
+        // creamos una Page de productos
+        Page<Product> productPage = new PageImpl<>(products,params.toPageable(),2);
+
+        when(repository.findAll(params.toPageable())).thenReturn(productPage);
+
+        // Act
+        Page<ProductResponse> responses = service.getAllProducts(params);
+
+        // Assert
+        assertThat(responses.getTotalElements()).isEqualTo(productPage.getTotalElements());
+        assertThat(responses.getTotalPages()).isEqualTo(productPage.getTotalPages());
+        assertThat(responses.getNumberOfElements()).isEqualTo(productPage.getNumberOfElements());
+        // Verificar contenido
+        assertThat(responses.getContent()).hasSize(2);
+        assertThat(responses.getContent())
+                .extracting(ProductResponse::id)
+                .containsExactly(10L, 20L);
+        assertThat(responses.getContent())
+                .extracting(ProductResponse::sku)
+                .containsExactly("ZAP001NEG40", "CAM003BLA10");
+
+        verify(repository, times(1)).findAll(params.toPageable());
+    }
 
     @Test
     @DisplayName("Debe obtener el producto por ID exitosamente")
