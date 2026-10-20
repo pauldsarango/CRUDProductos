@@ -271,14 +271,14 @@ class ProductControllerTest {
                 Instant.now()
         );
         List<ProductResponse> productResponseList = List.of(productResponse1, productResponse2);
-        PaginationParams params = new PaginationParams(0, 10, PRICE, DESC);
+        PaginationParams params = new PaginationParams(1, 5, PRICE, DESC);
         Page<ProductResponse> productPage = new PageImpl<>(productResponseList, params.toPageable(), 2);
         when(service.getAllProducts(any(PaginationParams.class))).thenReturn(productPage);
 
         // Act
         mockMvc.perform(get("/api/products")
-                        .param("page", "0")
-                        .param("size", "10")
+                        .param("page", "1")
+                        .param("size", "5")
                         .param("sortBy", "price")
                         .param("direction", "desc"))
                 // Asserts
@@ -288,16 +288,16 @@ class ProductControllerTest {
                 .andExpect(jsonPath("$.content[1].id").value(20L))
                 .andExpect(jsonPath("$.content[0].sku").value("ZAP001NEG40"))
                 .andExpect(jsonPath("$.content[1].sku").value("CAM003BLA10"))
-                .andExpect(jsonPath("$.totalPages").value(1))
-                .andExpect(jsonPath("$.number").value(0))
-                .andExpect(jsonPath("$.totalElements").value(2));
+                .andExpect(jsonPath("$.totalPages").value(2))
+                .andExpect(jsonPath("$.number").value(1))
+                .andExpect(jsonPath("$.totalElements").value(7));
 
         // Assert  entradas al service
         ArgumentCaptor<PaginationParams> captor = ArgumentCaptor.forClass(PaginationParams.class);
         verify(service, times(1)).getAllProducts(captor.capture());
         PaginationParams captured = captor.getValue();
-        assertThat(captured.page()).isZero();
-        assertThat(captured.size()).isEqualTo(10);
+        assertThat(captured.page()).isOne();
+        assertThat(captured.size()).isEqualTo(5);
         assertThat(captured.sortBy()).isEqualTo(PRICE);
         assertThat(captured.direction()).isEqualTo(DESC);
     }
