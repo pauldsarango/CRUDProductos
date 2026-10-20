@@ -1,7 +1,9 @@
 package com.productos.crud.service;
 
 import com.productos.crud.dto.CreateProductRequest;
+import com.productos.crud.dto.PaginationParams;
 import com.productos.crud.dto.ProductResponse;
+import com.productos.crud.dto.ProductSortField;
 import com.productos.crud.entity.Product;
 import com.productos.crud.exception.DuplicateResourceException;
 import com.productos.crud.exception.ResourceNotFoundException;
@@ -9,13 +11,24 @@ import com.productos.crud.repository.ProductRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.util.ReflectionUtils;
+
+import static org.assertj.core.api.AssertionsForClassTypes.tuple;
+import static org.springframework.data.domain.Sort.Direction.ASC;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,6 +44,67 @@ class ProductServiceTest {
     @InjectMocks
     private ProductService service;
 
+    // TEST DE CAMPOS CORRECTOS EN PARAMS DE PAGINACION
+    @ParameterizedTest
+    @EnumSource(ProductSortField.class)
+    void everySortFieldShouldMatchProductProperty(ProductSortField field) {
+        assertThat(ReflectionUtils.findField(Product.class, field.property()))
+                .as("Product debe tener un campo llamado '%s'", field.property())
+                .isNotNull();
+    }
+
+    @Test
+    @DisplayName("Debe obtener todos los productos exitosamente")
+    void shouldGetAllProductsSuccessfully(){
+        // Arrange
+        Product product1 = new Product("ZAP001NEG40",
+                "Zapatillas Runner Negras",
+                new BigDecimal("49.99")
+        );
+        Product product2 = new Product("CAM003BLA10",
+                "Camisa Blanca",
+                new BigDecimal("25.99")
+        );
+        // Agregamos un parametro a un campo privado, no persiste en la BD
+        ReflectionTestUtils.setField(product1, "id", 10L);
+        ReflectionTestUtils.setField(product2, "id", 20L);
+        // Creamos la lista de productos
+        List<Product> products = List.of(product2, product1);
+        // indicamos los detalles de la paginación
+        PaginationParams params = new PaginationParams(0, 10, ProductSortField.PRICE, ASC);
+        // creamos una Page de productos
+        Page<Product> productPage = new PageImpl<>(products,params.toPageable(),2);
+
+        when(repository.findAll(any(Pageable.class))).thenReturn(productPage);
+
+        // Act
+        Page<ProductResponse> responses = service.getAllProducts(params);
+
+        // Assert
+        assertThat(responses.getTotalElements()).isEqualTo(productPage.getTotalElements());
+        assertThat(responses.getTotalPages()).isEqualTo(productPage.getTotalPages());
+        assertThat(responses.getNumberOfElements()).isEqualTo(productPage.getNumberOfElements());
+        // Verificar contenido
+        assertThat(responses.getContent()).hasSize(2);
+        assertThat(responses.getContent())
+                .extracting(ProductResponse::id)
+                .containsExactly(20L, 10L);
+        assertThat(responses.getContent())
+                .extracting(ProductResponse::sku)
+                .containsExactly("CAM003BLA10", "ZAP001NEG40");
+        // Verificar lo que recibe el Repository
+        ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
+        verify(repository, times(1)).findAll(captor.capture());
+        Pageable captured = captor.getValue();
+        assertThat(captured.getPageNumber()).isZero();
+        assertThat(captured.getPageSize()).isEqualTo(10);
+        assertThat(captured.getSort().toList())
+                .extracting(Sort.Order::getProperty, Sort.Order::getDirection)
+                .containsExactly(
+                        tuple("price", Sort.Direction.ASC),
+                        tuple("id", Sort.Direction.ASC));
+
+    }
 
     @Test
     @DisplayName("Debe obtener el producto por ID exitosamente")

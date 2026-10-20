@@ -3,7 +3,6 @@ package com.productos.crud.exception;
 import com.productos.crud.dto.ErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.FieldError;
 import org.springframework.validation.method.ParameterErrors;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -78,16 +77,12 @@ public class GlobalExceptionHandler {
     {
         Map<String, List<String>> fieldErrors = new LinkedHashMap<>();
         // Capturamos el mensaje del error y evitamos NPE
-        for (FieldError fieldError :
-                exception.getBindingResult().getFieldErrors()) {
-
-            fieldErrors
-                    .computeIfAbsent(
-                            fieldError.getField(),
-                            key -> new ArrayList<>()
-                    )
-                    .add(fieldError.getDefaultMessage());
-        }
+        exception.getBindingResult().getFieldErrors().forEach(fe -> {
+            String message = fe.isBindingFailure()
+                    ? "Parameter " + fe.getField() + " has an invalid value: " + fe.getRejectedValue()
+                    : fe.getDefaultMessage();
+            fieldErrors.computeIfAbsent(fe.getField(), k -> new ArrayList<>()).add(message);
+        });
 
         ErrorResponse errorResponse = new ErrorResponse(
                 HttpStatus.BAD_REQUEST.value(),

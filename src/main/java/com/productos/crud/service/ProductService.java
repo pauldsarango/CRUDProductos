@@ -1,12 +1,14 @@
 package com.productos.crud.service;
 
 import com.productos.crud.dto.CreateProductRequest;
+import com.productos.crud.dto.PaginationParams;
 import com.productos.crud.dto.ProductResponse;
 import com.productos.crud.entity.Product;
 import com.productos.crud.exception.DuplicateResourceException;
 import com.productos.crud.exception.ResourceNotFoundException;
 import com.productos.crud.mapper.ProductMapper;
 import com.productos.crud.repository.ProductRepository;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 
 
@@ -16,6 +18,11 @@ public class ProductService{
 
     public ProductService(ProductRepository repository) {
         this.repository = repository;
+    }
+
+    public Page<ProductResponse> getAllProducts(PaginationParams params) {
+        Page<Product> productsPage = repository.findAll(params.toPageable());
+        return productsPage.map(ProductMapper::toProductResponse);
     }
 
     public ProductResponse getProductById(Long id){
