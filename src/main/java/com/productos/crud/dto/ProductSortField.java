@@ -7,7 +7,7 @@ public enum ProductSortField {
     SKU("sku"),
     PRICE("price"),
     CREATED_AT("createdAt"),   // Se usa el nombre real de la propiedad de fecha del Entity
-    UPDATED_AT("updatedAT");
+    UPDATED_AT("updatedAt");
 
     private final String property;
 
