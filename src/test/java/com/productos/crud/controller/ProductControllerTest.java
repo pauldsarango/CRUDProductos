@@ -25,6 +25,7 @@ import java.time.Instant;
 import java.util.List;
 
 import static com.productos.crud.dto.ProductSortField.ID;
+import static com.productos.crud.dto.ProductSortField.PRICE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.hamcrest.Matchers.endsWith;
@@ -76,7 +77,7 @@ class ProductControllerTest {
     @DisplayName("GET /api/products/{id} - Error Type - Debe retornar 400 Bad Request")
     void shouldReturn400WhenIdIsNotNumeric() throws Exception {
         // Arrange
-        String badId = "abc";
+        String badId = "abc" ;
         // Act
         mockMvc.perform(get("/api/products/{id}", badId)
                         .accept(MediaType.APPLICATION_JSON))
@@ -95,7 +96,7 @@ class ProductControllerTest {
     @DisplayName("GET /api/products/sku/{sku} - Debe retornar 400 Bad Request")
     void shouldReturn400WhenSkuIsTooShort() throws Exception {
         // Arrange
-        String sku = "abc";
+        String sku = "abc" ;
         // Act
         mockMvc.perform(get("/api/products/sku/{sku}", sku)
                         .accept(MediaType.APPLICATION_JSON))
@@ -168,7 +169,7 @@ class ProductControllerTest {
                 Instant.now()
         );
         List<ProductResponse> productResponseList = List.of(productResponse1, productResponse2);
-        PaginationParams params = new PaginationParams(0, 10, ID, ASC );
+        PaginationParams params = new PaginationParams(0, 10, ID, ASC);
         Page<ProductResponse> productPage = new PageImpl<>(productResponseList, params.toPageable(), 2);
         when(service.getAllProducts(any(PaginationParams.class))).thenReturn(productPage);
 
@@ -252,6 +253,56 @@ class ProductControllerTest {
     }
 
     @Test
+    @DisplayName("GET /api/products?page=1&size=5&sortBy=price&direction=desc")
+    void shouldApplyPriceSort() throws Exception {
+        // Arrange
+        ProductResponse productResponse1 = new ProductResponse(
+                10L,
+                "Zapatillas Runner Negras",
+                "ZAP001NEG40",
+                new BigDecimal("49.99"),
+                Instant.now()
+        );
+        ProductResponse productResponse2 = new ProductResponse(
+                20L,
+                "Camisa Blanca",
+                "CAM003BLA10",
+                new BigDecimal("25.99"),
+                Instant.now()
+        );
+        List<ProductResponse> productResponseList = List.of(productResponse1, productResponse2);
+        PaginationParams params = new PaginationParams(0, 10, PRICE, DESC);
+        Page<ProductResponse> productPage = new PageImpl<>(productResponseList, params.toPageable(), 2);
+        when(service.getAllProducts(any(PaginationParams.class))).thenReturn(productPage);
+
+        // Act
+        mockMvc.perform(get("/api/products")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("sortBy", "price")
+                        .param("direction", "desc"))
+                // Asserts
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].id").value(10L))
+                .andExpect(jsonPath("$.content[1].id").value(20L))
+                .andExpect(jsonPath("$.content[0].sku").value("ZAP001NEG40"))
+                .andExpect(jsonPath("$.content[1].sku").value("CAM003BLA10"))
+                .andExpect(jsonPath("$.totalPages").value(1))
+                .andExpect(jsonPath("$.number").value(0))
+                .andExpect(jsonPath("$.totalElements").value(2));
+
+        // Assert  entradas al service
+        ArgumentCaptor<PaginationParams> captor = ArgumentCaptor.forClass(PaginationParams.class);
+        verify(service, times(1)).getAllProducts(captor.capture());
+        PaginationParams captured = captor.getValue();
+        assertThat(captured.page()).isZero();
+        assertThat(captured.size()).isEqualTo(10);
+        assertThat(captured.sortBy()).isEqualTo(PRICE);
+        assertThat(captured.direction()).isEqualTo(DESC);
+    }
+
+    @Test
     @DisplayName("GET /api/products?page=null&size=null&sort=null,null - Verificar pag 0, size 10 y orden por ID sin enviar parámetros")
     void shouldUseDefaultPagination() throws Exception {
         // Arrange
@@ -291,7 +342,7 @@ class ProductControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/products?page=-10&size=0&sort=id,asc - Comprueba una página sin productos")
+    @DisplayName("GET /api/products?page=0&size=10&sort=id,asc - Comprueba una página sin productos")
     void shouldReturnEmptyPage()throws Exception{
         // Arrange
         List<ProductResponse> productResponseList = List.of();

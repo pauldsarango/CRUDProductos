@@ -11,14 +11,20 @@ import com.productos.crud.repository.ProductRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatCode;
+import static org.assertj.core.api.AssertionsForClassTypes.tuple;
 import static org.springframework.data.domain.Sort.Direction.ASC;
 
 import java.math.BigDecimal;
@@ -38,6 +44,17 @@ class ProductServiceTest {
     @InjectMocks
     private ProductService service;
 
+    // TEST DE CAMPOS CORRECTOS EN PARAMS DE PAGINACION
+    @ParameterizedTest
+    @EnumSource(ProductSortField.class)
+    @DisplayName("Todos los campos del enum deben ser ordenables en la entidad")
+    void everySortFieldShouldBeValidForEntity(ProductSortField field) {
+        Pageable pageable = new PaginationParams(0, 10, field, Sort.Direction.ASC).toPageable();
+
+        assertThatCode(() -> repository.findAll(pageable))
+                .doesNotThrowAnyException();
+    }
+
     @Test
     @DisplayName("Debe obtener todos los productos exitosamente")
     void shouldGetAllProductsSuccessfully(){
@@ -54,13 +71,13 @@ class ProductServiceTest {
         ReflectionTestUtils.setField(product1, "id", 10L);
         ReflectionTestUtils.setField(product2, "id", 20L);
         // Creamos la lista de productos
-        List<Product> products = List.of(product1, product2);
+        List<Product> products = List.of(product2, product1);
         // indicamos los detalles de la paginación
-        PaginationParams params = new PaginationParams(0, 10, ProductSortField.ID, ASC);
+        PaginationParams params = new PaginationParams(0, 10, ProductSortField.PRICE, ASC);
         // creamos una Page de productos
         Page<Product> productPage = new PageImpl<>(products,params.toPageable(),2);
 
-        when(repository.findAll(params.toPageable())).thenReturn(productPage);
+        when(repository.findAll(any(Pageable.class))).thenReturn(productPage);
 
         // Act
         Page<ProductResponse> responses = service.getAllProducts(params);
@@ -73,12 +90,22 @@ class ProductServiceTest {
         assertThat(responses.getContent()).hasSize(2);
         assertThat(responses.getContent())
                 .extracting(ProductResponse::id)
-                .containsExactly(10L, 20L);
+                .containsExactly(20L, 10L);
         assertThat(responses.getContent())
                 .extracting(ProductResponse::sku)
-                .containsExactly("ZAP001NEG40", "CAM003BLA10");
+                .containsExactly("CAM003BLA10", "ZAP001NEG40");
+        // Verificar lo que recibe el Repository
+        ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
+        verify(repository, times(1)).findAll(captor.capture());
+        Pageable captured = captor.getValue();
+        assertThat(captured.getPageNumber()).isZero();
+        assertThat(captured.getPageSize()).isEqualTo(10);
+        assertThat(captured.getSort().toList())
+                .extracting(Sort.Order::getProperty, Sort.Order::getDirection)
+                .containsExactly(
+                        tuple("price", Sort.Direction.ASC),
+                        tuple("id", Sort.Direction.ASC));
 
-        verify(repository, times(1)).findAll(params.toPageable());
     }
 
     @Test
