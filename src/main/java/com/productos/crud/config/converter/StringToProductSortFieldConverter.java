@@ -1,6 +1,7 @@
 package com.productos.crud.config.converter;
 
 import com.productos.crud.dto.ProductSortField;
+import org.jspecify.annotations.NonNull;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.stereotype.Component;
 
@@ -13,7 +14,7 @@ import org.springframework.stereotype.Component;
 public class StringToProductSortFieldConverter implements Converter<String, ProductSortField> {
 
     @Override
-    public ProductSortField convert(String source) {
+    public ProductSortField convert(@NonNull String source) {
         return ProductSortField.fromString(source);
     }
 }
