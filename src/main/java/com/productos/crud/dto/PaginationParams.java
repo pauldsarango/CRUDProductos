@@ -28,7 +28,10 @@ public record PaginationParams(
     }
 
     public Pageable toPageable() {
-
-        return PageRequest.of(page, size, Sort.by(direction, sortBy.property()));
+        Sort sort = Sort.by(direction, sortBy.property());
+        if (sortBy != ProductSortField.ID) {
+            sort = sort.and(Sort.by(direction, ProductSortField.ID.property()));
+        }
+        return PageRequest.of(page, size, sort);
     }
 }
