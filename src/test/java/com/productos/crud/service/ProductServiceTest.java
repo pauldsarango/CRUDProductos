@@ -22,8 +22,8 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.util.ReflectionUtils;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatCode;
 import static org.assertj.core.api.AssertionsForClassTypes.tuple;
 import static org.springframework.data.domain.Sort.Direction.ASC;
 
@@ -47,12 +47,10 @@ class ProductServiceTest {
     // TEST DE CAMPOS CORRECTOS EN PARAMS DE PAGINACION
     @ParameterizedTest
     @EnumSource(ProductSortField.class)
-    @DisplayName("Todos los campos del enum deben ser ordenables en la entidad")
-    void everySortFieldShouldBeValidForEntity(ProductSortField field) {
-        Pageable pageable = new PaginationParams(0, 10, field, Sort.Direction.ASC).toPageable();
-
-        assertThatCode(() -> repository.findAll(pageable))
-                .doesNotThrowAnyException();
+    void everySortFieldShouldMatchProductProperty(ProductSortField field) {
+        assertThat(ReflectionUtils.findField(Product.class, field.property()))
+                .as("Product debe tener un campo llamado '%s'", field.property())
+                .isNotNull();
     }
 
     @Test
