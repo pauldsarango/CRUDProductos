@@ -1,10 +1,12 @@
 package com.productos.crud.controller;
 
 import com.productos.crud.dto.CreateProductRequest;
+import com.productos.crud.dto.PaginationParams;
 import com.productos.crud.dto.ProductResponse;
 import com.productos.crud.service.ProductService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -17,8 +19,16 @@ public class ProductController {
 
     private final ProductService service;
 
-    public ProductController(ProductService service) {
-        this.service = service;
+    public ProductController(ProductService service) {this.service = service;}
+
+    @GetMapping
+    public ResponseEntity<Page<ProductResponse>> getAllProducts(
+            @Valid
+            @ModelAttribute
+            PaginationParams params
+    ) {
+        Page<ProductResponse> allProducts = service.getAllProducts(params);
+        return ResponseEntity.ok(allProducts);
     }
 
     @GetMapping("/{id}")
