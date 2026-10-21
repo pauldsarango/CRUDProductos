@@ -142,7 +142,7 @@ public class GlobalExceptionHandler {
 
         if (constraint != null) {
             for (Map.Entry<String, String> entry : CONSTRAINT_MESSAGES.entrySet()) {
-                if (constraint.contains(entry.getKey())) {
+                if (constraint.equals(entry.getKey())) {
                     return buildResponse(HttpStatus.CONFLICT, entry.getValue());
                 }
             }
