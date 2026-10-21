@@ -157,7 +157,9 @@ public class GlobalExceptionHandler {
         while (current != null) {
             if (current instanceof org.hibernate.exception.ConstraintViolationException cve
                     && cve.getConstraintName() != null) {
-                return cve.getConstraintName().toLowerCase(Locale.ROOT);
+                String name = cve.getConstraintName().toLowerCase(Locale.ROOT);
+                int dot = name.lastIndexOf('.');
+                return dot >= 0 ? name.substring(dot + 1) : name;
             }
             current = current.getCause();
         }
