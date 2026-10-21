@@ -1,6 +1,9 @@
 package com.productos.crud.exception;
 
 import com.productos.crud.dto.ErrorResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.method.ParameterErrors;
@@ -122,4 +125,55 @@ public class GlobalExceptionHandler {
         );
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
     }
+
+
+    // CAPTURADOR DE UNIQUE EN DATAINTEGRITYVIOLATION
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    private static final Map<String, String> CONSTRAINT_MESSAGES = Map.of(
+            "uk_product_sku", "A product with this SKU already exists"
+    );
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(
+            DataIntegrityViolationException exception
+    ) {
+        String constraint = findConstraintName(exception);
+
+        if (constraint != null) {
+            for (Map.Entry<String, String> entry : CONSTRAINT_MESSAGES.entrySet()) {
+                if (constraint.contains(entry.getKey())) {
+                    return buildResponse(HttpStatus.CONFLICT, entry.getValue());
+                }
+            }
+        }
+
+        log.error("Unhandled data integrity violation (constraint={})", constraint, exception);
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected data integrity error");
+    }
+
+    private String findConstraintName(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            if (current instanceof org.hibernate.exception.ConstraintViolationException cve
+                    && cve.getConstraintName() != null) {
+                return cve.getConstraintName().toLowerCase(Locale.ROOT);
+            }
+            current = current.getCause();
+        }
+        return null;
+    }
+
+    private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, String message) {
+        ErrorResponse body = new ErrorResponse(
+                status.value(),
+                status.getReasonPhrase(),
+                message,
+                Instant.now(),
+                Map.of()
+        );
+        return ResponseEntity.status(status).body(body);
+    }
+
+
 }
