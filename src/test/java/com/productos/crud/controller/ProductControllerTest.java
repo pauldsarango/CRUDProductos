@@ -6,6 +6,7 @@ import com.productos.crud.dto.ProductResponse;
 import com.productos.crud.exception.DuplicateResourceException;
 import com.productos.crud.exception.ResourceNotFoundException;
 import com.productos.crud.service.ProductService;
+import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -13,6 +14,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.*;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
+import java.sql.SQLException;
 import java.time.Instant;
 import java.util.List;
 
@@ -572,5 +575,58 @@ class ProductControllerTest {
 
     }
 
+    @Test
+    @DisplayName("POST /api/products - SKU duplicado detectado por la BD devuelve 409")
+    void shouldReturn409WhenDatabaseRejectsDuplicateSku() throws Exception {
+        // Arrange: el service lanza lo que lanzaría Spring ante el UNIQUE
+        ConstraintViolationException cause = new ConstraintViolationException(
+                "could not execute statement", new SQLException("duplicate"), "uk_product_SKU");
+        when(service.createProduct(any()))
+                .thenThrow(new DataIntegrityViolationException("duplicate", cause));
 
+        // Act + Assert
+        mockMvc.perform(post("/api/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"sku": "ZAP001NEG40", "name": "Zapatillas", "price": 49.99}
+                            """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.error").value("Conflict"))
+                .andExpect(jsonPath("$.message").value("A product with this SKU already exists"));
+    }
+    @Test
+    @DisplayName("POST /api/products - Constraint sin nombre devuelve 500 sin romper el handler")
+    void shouldReturn500WhenConstraintNameIsNull() throws Exception {
+        ConstraintViolationException cause = new ConstraintViolationException(
+                "could not execute statement", new SQLException("not null"), null);
+        when(service.createProduct(any()))
+                .thenThrow(new DataIntegrityViolationException("not null", cause));
+
+        mockMvc.perform(post("/api/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                        {"sku": "ZAP001NEG40", "name": "Zapatillas", "price": 49.99}
+                        """))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.message").value("Unexpected data integrity error"));
+    }
+
+    @Test
+    @DisplayName("POST /api/products - Constraint de otro tipo no se trata como SKU duplicado")
+    void shouldReturn500ForOtherConstraint() throws Exception {
+        ConstraintViolationException cause = new ConstraintViolationException(
+                "could not execute statement", new SQLException("fk"), "fk_otra_cosa");
+        when(service.createProduct(any()))
+                .thenThrow(new DataIntegrityViolationException("fk", cause));
+
+        mockMvc.perform(post("/api/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                        {"sku": "ZAP001NEG40", "name": "Zapatillas", "price": 49.99}
+                        """))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.status").value(500))
+                .andExpect(jsonPath("$.message").value("Unexpected data integrity error"));
+    }
 }
