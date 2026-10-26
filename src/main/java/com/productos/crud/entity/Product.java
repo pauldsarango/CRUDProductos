@@ -33,6 +33,7 @@ public class Product {
     @CreatedDate
     private Instant createdAt;
 
+    @Column(nullable = false)
     @LastModifiedDate
     private Instant updatedAt;
 

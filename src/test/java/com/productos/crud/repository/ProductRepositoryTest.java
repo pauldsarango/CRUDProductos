@@ -17,7 +17,10 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.catchThrowable;
 
 
-@DataJpaTest(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
+@DataJpaTest(properties = {
+        "spring.jpa.hibernate.ddl-auto=create-drop",
+        "spring.flyway.enabled=false"
+})
 @Import(JpaAuditingConfig.class)
 public class ProductRepositoryTest {
     @Autowired
