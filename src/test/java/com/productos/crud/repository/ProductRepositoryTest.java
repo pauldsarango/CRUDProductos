@@ -1,27 +1,27 @@
 package com.productos.crud.repository;
 
+import com.productos.crud.TestContainersConfiguration;
 import com.productos.crud.config.JpaAuditingConfig;
 import com.productos.crud.entity.Product;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 
 import java.math.BigDecimal;
-
 
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.catchThrowable;
 
 
-@DataJpaTest(properties = {
-        "spring.jpa.hibernate.ddl-auto=create-drop",
-        "spring.flyway.enabled=false"
-})
-@Import(JpaAuditingConfig.class)
+@DataJpaTest
+
+@Import({JpaAuditingConfig.class, TestContainersConfiguration.class})
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 public class ProductRepositoryTest {
     @Autowired
     private ProductRepository repository;
@@ -40,7 +40,7 @@ public class ProductRepositoryTest {
                 repository.saveAndFlush(product2));
         // Asserts
         assertThat(thrown).isInstanceOf(DataIntegrityViolationException.class);
-        assertThat(findConstraintName(thrown)).containsIgnoringCase("uk_product_sku");
+        assertThat(findConstraintName(thrown)).isEqualToIgnoringCase("uk_product_sku");
     }
 
     @Test
